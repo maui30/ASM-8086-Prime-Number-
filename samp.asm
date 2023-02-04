@@ -193,6 +193,10 @@ EXIT:
     INT 21H 
 
     MOV AH, 09H 
+    MOV dx, OFFSET newline
+    INT 21H 
+
+    MOV AH, 09H 
     MOV dx, OFFSET disEnd
     INT 21H  
 	   
