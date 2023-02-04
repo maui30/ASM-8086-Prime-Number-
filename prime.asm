@@ -1,5 +1,6 @@
 .MODEL SMALL
 .STACK 100H
+
 .DATA
 input_len DW 0
 input DB ?,'$' ; array to store input
@@ -7,11 +8,13 @@ msg DB "Enter number: $"
 msg1 DB "Prime Numbers: $"
 newline DB 0dh,0ah,'$' ; newline character  
 termi DW 0
+
 .CODE
 MAIN PROC 
     
 MOV BH,0
 MOV BL,10D
+
 MOV AX, @DATA
 MOV DS, AX
 
@@ -73,26 +76,26 @@ CHECK_LOOP:
     MOV BH,0
     MOV BL,10D
 
-BACK:
-    ; increment si and loop check_loop
-    INC SI
-    DEC DI
-    MOV [termi], DI
-    JNZ CHECK_LOOP
-    
-    JMP EXIT
+    BACK:
+        ; increment si and loop check_loop
+        INC SI
+        DEC DI
+        MOV [termi], DI
+        JNZ CHECK_LOOP
+        
+        JMP EXIT
 
 
-;convert to number
-NUMBER:
-    SUB AL,30H
-    MOV CL,AL
-    MOV AL,BH
-    MUL BL
-    ADD AL,CL
-    MOV BH,AL
-    
-    JMP BACK 
+    ;convert to number
+    NUMBER:
+        SUB AL,30H
+        MOV CL,AL
+        MOV AL,BH
+        MUL BL
+        ADD AL,CL
+        MOV BH,AL
+        
+        JMP BACK 
 
 
 ;check if it is prime
@@ -132,7 +135,7 @@ PRIME:
     
     MOV BX,0000H    
 
-
+;stores the result in memory at [0000H + BX]
 STORE:
     DIV CL
     MOV [0000H+BX],AH
@@ -149,6 +152,7 @@ INT 21H
 MOV DL,0AH
 INT 21H
 
+;Prints the digit of the quotient 
 PRINT: 
     SUB BX,2H
     MOV DL,[0000H+BX]
