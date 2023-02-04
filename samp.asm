@@ -8,6 +8,8 @@ msg DB "Enter number: $"
 msg1 DB "Prime Numbers: $"
 newline DB 0dh,0ah,'$' ; newline character  
 termi DW 0 
+numStr DW 0
+disEnd DB "END $"
 
 .CODE
 MAIN PROC 
@@ -65,7 +67,10 @@ MOV SI, 0 ; SI = 0
 
 CHECK_LOOP:
     ; check if the current element is equal to ' '
+    MOV [numStr], SI
     MOV AL, [input+SI]  ;input[si]
+    CMP AL, 30H
+    JE ZERO
     CMP AL, 13D         ;check if user hit enter
     JE CHECK
     CMP AL, ' '         ;check if user entered a space
@@ -99,12 +104,23 @@ CHECK_LOOP:
         
         JMP BACK  ;ako
 
+ZERO:
+    INC SI
+    MOV AH, [input+SI]
+    CMP AH, 13D
+    JE NOT_PRIME
+    CMP AH, ' '
+    JE BACK
+    
+    MOV SI, [numStr]
+    JMP NUMBER
+
 
 ;Robin
 ;check if it is prime
 CHECK:   
     CMP BH,1        ;compare bh to 1
-    JLE NOT_PRIME   ;jump if less than or equal
+    JE NOT_PRIME   ;jump if less than or equal
 
     MOV CX,2        ;store 2 to cx
     AND AX,0        ;clears value of ax and dx
@@ -171,7 +187,15 @@ NOT_PRIME:
     JMP BACK ;michael
     
 
-EXIT:	   
+EXIT:
+    MOV AH, 09H 
+    MOV dx, OFFSET newline
+    INT 21H 
+
+    MOV AH, 09H 
+    MOV dx, OFFSET disEnd
+    INT 21H  
+	   
     mov ah, 4ch
     int 21h   
         
