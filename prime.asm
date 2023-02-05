@@ -1,22 +1,16 @@
 .MODEL SMALL
 .STACK 100H
-
 .DATA
-input_len DW 0
-input DB ?,'$' ; array to store input
-msg DB "Enter number: $"     
-msg1 DB "Prime Numbers: $"
-newline DB 0dh,0ah,'$' ; newline character  
-termi DW 0
-numStr DW 0
-disEnd DB "END $"
-
+  digit_array DB ?, '$'
+  input_len DW 0
+  input DB ?,'$' ; array to store input
+  msg DB "Enter number: $"     
+  msg1 DB "Prime Numbers: $"
+  newline DB 0dh,0ah,'$' ; newline character  
+  termi DW 0
 .CODE
 MAIN PROC 
     
-MOV BH,0
-MOV BL,10D
-
 MOV AX, @DATA
 MOV DS, AX
 
@@ -29,7 +23,7 @@ INT 21H
 MOV SI, 0
 
 INPUT_LOOP:
-    MOV aH, 01H
+    MOV AH, 01H
     INT 21H
     MOV [input+SI], AL
     ; increment si and loop input_loop
@@ -63,151 +57,138 @@ INT 21H
 MOV DI, [input_len]
 MOV SI, 0
 
+MOV BX, 0H
+
 CHECK_LOOP:
     ; check if the current element is equal to ' '
-    MOV [numStr], SI
-    MOV AL, [input+SI]  
-    CMP AL, 30H
-    JE ZERO 
-    CMP AL, 13D
-    JE CHECK
-    CMP AL, ' '
+    MOV CL, [input + SI]
+    CMP CL, 13D
+    JE CHECK_IF_PRIME
+    CMP CL, ' '
     JNE NUMBER
     
-    JMP CHECK
-
-    ;clears bh memory, bl=10 
-    ;for new number
-    MOV BH,0
-    MOV BL,10D
-
-    BACK:
-        ; increment si and loop check_loop
-        INC SI
-        DEC DI
-        MOV [termi], DI
-        JNZ CHECK_LOOP
-        
-        JMP EXIT
+    JMP CHECK_IF_PRIME
 
 
-    ;convert to number
-    NUMBER:
-        SUB AL,30H
-        MOV CL,AL
-        MOV AL,BH
-        MUL BL
-        ADD AL,CL
-        MOV BH,AL
-        
-        JMP BACK 
-
-ZERO:
-    DEC SI
-    MOV AH, [input+SI]  
-    CMP AH, ' '
-    JE  ZEROF
-    
-    MOV SI, [numStr]
-    JMP NUMBER
-    
-ZEROF:
-    MOV SI, [numStr]   
+BACK:
+    ; increment si and loop check_loop
     INC SI
-    MOV AH, [input+SI]
-    CMP AH, 13D
-    JE NOT_PRIME
-    CMP AH, ' '
-    JE BACK
+    DEC DI
+    MOV [termi], DI
+    JNZ CHECK_LOOP
     
-    MOV SI, [numStr]
-    JMP NUMBER
+    JMP EXIT
 
 
-;check if it is prime
-CHECK:   
-    CMP BH,1
-    JE NOT_PRIME
+; Convert to Number
+; AX = Temporary Variable
+; BX = Number Accumlator
+; CL = Digit Character in ASCII format
+; DX = 10D
+NUMBER:
+    MOV AX, BX      ; AX <- BX
 
-    MOV CX,2
-    AND AX,0
-    AND DX,0
+    AND CH, 0H      ; Set CH to 0000
 
-    MOV AL,BH
-    DIV CX
+    MOV DX, 10D     ; 
+    MUL DX          ; Multiply AX with DX (10D), to add trailing zero, 42 => 420
 
-    MOV CX,AX              
+    SUB CL, '0'     ; Convert Digit Character ASCII to Integer
+    ADD AX, CX      ; Add Digit to Number: Digit = 9, Number = 420 => 429
+    MOV BX, AX      ; Move AX to BX
+    
+    JMP BACK 
 
-ISPRIME:
-    CMP CX,2
-    JL PRIME
-    AND AX,0
-    AND DX,0
-    MOV AL,BH               
-    DIV CX 
-    DEC CX
-    CMP DX,0
 
-    JE NOT_PRIME
+; Checks if BX (Signed 16bit Integer) is prime or not
+; Value Range of BX: -32,768 to +32,767
+; Up to (2^15)-1 = 32767
+CHECK_IF_PRIME:
+  MOV CX, 2D      ; Set up the Divisor to 2
+  CWD
+  JMP IS_PRIME    ; goto IS_PRIME to start checking
 
-    JMP ISPRIME
+
+; AX = Temporary Variable
+; BX = Number to be Checked
+; CX = Current Divisor
+; DX = Remainder
+IS_PRIME:
+  MOV AX, BX      ; AX <- BX
+
+  CMP AX, 0D      ; if Number == 0:
+  JE NOT_PRIME    ;   goto NOT_PRIME
+
+  CMP AX, 1D      ; if Number == 1:
+  JE NOT_PRIME    ;   goto NOT_PRIME
+
+  CMP CX, 255D    ; if Divisor > 255:
+  JG PRIME        ;   goto PRIME
+                  ;
+                  ; Decimal 255 since the highest divisor of N is sqrt(N),
+                  ; and the highest possible value is signed 16bit number, (2^15)-1 = 32767
+                  ; sqrt(32767) <= 255
+
+  CMP CX, BX      ; if Divisir > Number:
+  JGE PRIME       ;   goto PRIME
+
+  IDIV CX         ; AX = floor(AX / CX)   [Quotient]
+                  ; DX = AX % CX          [Remainder]
+
+  CMP DX, 0D      ; if Remainder == 0:  (Means that AX is divisible by CX)
+  JE NOT_PRIME    ;   goto NOT_PRIME
+
+  INC CX          ; Increment Divisor
+
+  AND DX, 0H      ; Reset DX (Divisor Register)
+
+  JMP IS_PRIME    ; Retry the process for the incremented Divisor
 
 
 ;print if number is prime
 PRIME:
-    AND AX,0
-    MOV AL,BH
-    MOV CL,10D
-    
-    MOV BX,0000H    
+    MOV AX, BX
+    MOV BX, 0000H
 
-;stores the result in memory at [0000H + BX]
 STORE:
-    DIV CL
-    MOV [0000H+BX],AH
-    ADD BX,2H
-    MOV AH,0
-    CMP AL,0
+    MOV CX, 10D
+    IDIV CX
+
+    MOV [0000H + BX], DX
+    ADD BX, 2H
+    AND DX, 0H
+
+    CMP AX, 0H
 
     JNE STORE
 
 
-MOV AH,2
-MOV  DL,0DH
+MOV AH, 2H
+MOV DL, 0DH
 INT 21H
-MOV DL,0AH
+MOV DL, 0AH
 INT 21H
 
-;Prints the digit of the quotient 
+
 PRINT: 
-    SUB BX,2H
-    MOV DL,[0000H+BX]
-    ADD DL,30H
+    SUB BX, 2H
+    MOV DL,[0000H + BX]
+    ADD DL, 30H
     INT 21H
-    CMP BX,0
+    CMP BX, 0H
     JNE PRINT
 
+
 NOT_PRIME:
-    MOV BH,0
-    MOV BL,10D
+    MOV BX, 0H
+    CMP [termi], 0H
+    JE EXIT
     JMP BACK
     
 
-EXIT:
-    MOV AH, 09H 
-    MOV dx, OFFSET newline
-    INT 21H 
-
-    MOV AH, 09H 
-    MOV dx, OFFSET newline
-    INT 21H 
-
-    MOV AH, 09H 
-    MOV dx, OFFSET disEnd
-    INT 21H  
-
-    mov ah, 4ch
-    int 21h   
+EXIT:	   
+    mov AH, 4CH
+    int 21H
         
 MAIN ENDP
 END MAIN
