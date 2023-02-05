@@ -190,8 +190,6 @@ PRINT:
 NOT_PRIME:
     MOV BH,0
     MOV BL,10D
-    CMP [termi], 0
-    JE EXIT
     JMP BACK
     
 
