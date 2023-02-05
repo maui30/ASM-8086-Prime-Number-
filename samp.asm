@@ -105,6 +105,16 @@ CHECK_LOOP:
         JMP BACK  ;ako
 
 ZERO:
+    DEC SI
+    MOV AH, [input+SI]  
+    CMP AH, ' '
+    JE  ZEROF
+    
+    MOV SI, [numStr]
+    JMP NUMBER
+    
+ZEROF:
+    MOV SI, [numStr]   
     INC SI
     MOV AH, [input+SI]
     CMP AH, 13D
